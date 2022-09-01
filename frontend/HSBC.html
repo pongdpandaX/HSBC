@@ -1,0 +1,184 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset="utf-8" />
+
+    <script src="dist/bundle.js" type="text/javascript"></script>
+    <script src="dist/HSBC.js" type="text/javascript"></script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"> </script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.36/dist/web3.min.js" integrity="sha256-nWBTbvxhJgjslRyuAKJHK+XcZPlCnmIAAMixz6EefVk=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/HSBC.css">
+
+
+    <script>
+        const BSCTContract = "0x0Cd5709C00E20d0E3d56d3B668c968Cb850B35AE"; //BSCTestNet token contract address here
+        const BSCTHashLockContract = "0x5348e9c11AedA7d343fD0788cFD39542Ce07D033";//BSCTestNet hashlock contract address here
+        const RopstenContract = "0x0Cd5709C00E20d0E3d56d3B668c968Cb850B35AE"; //Ropsten token contract address here
+        const RopstenHashLockContract = "0x05662887712f8F682a61C4B85bF697D28256acCC"; //Ropsten hashlock contract address here
+        const BSCTNetworkId = 97;
+        const RopstenNetworkId = 3;
+
+        var commonABI = [{"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}], "stateMutability":"view","type":"function"},{"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}], "stateMutability":"view","type":"function"}, {"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}], "stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"token0","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"token1","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"}];
+        var abiHash = [{"inputs":[{"name":"_key","type":"string"}],"name":"getHash","outputs":[{"name":"pure","type":"bytes32"}],"stateMutability":"view","type":"function"}];
+        var abiContractHash = ["function getContractHash(address _receiver, bytes32 _hashlock, uint256 _timelock, uint256 _amount) external  view  returns (bytes32)"];
+        var abiApprove = ["function approve(address _spender, uint256 _value) public returns (bool success)"];
+        var abiMint = ["function GetToken(uint256 _amount) public returns (bool success)"];              
+        var abiCreateContract = ["function newContract(address _receiver, bytes32 _hashlock, uint256 _timelock, uint256 _amount) external returns (bytes32 contractId)"];      
+        var abiVerifyContract = ["function getContract(bytes32 _contractId) public view returns (address sender, address receiver, uint256 amount, bytes32 hashlock, uint256 timelock, bool withdrawn, bool refunded)"];        
+        var abiWithdraw = ["function withdraw(bytes32 _contractId, string memory _preimage)"];       
+        var abiRefund = ["function refund(bytes32 _contractId)"]; 
+
+        $(document).ready(function () {
+            //connect wallet using metamask
+            ConnectWallet();
+            SetContractInfo();
+
+            //Display BSC Testnet as default
+            DisplayTab(null, 'BSCT');
+        });
+
+        
+
+    </script>
+</head>
+
+<body>
+    <div class="headerDiv">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/HSBC_logo_%282018%29.svg/1280px-HSBC_logo_%282018%29.svg.png" width="100px" class="paddingMed" />
+        <div class="rightAlign"><a id="connectButton" class="btn btn-warning displayText" onclick="ConnectWallet()">Connect</a></div>
+    </div>
+
+    <div class="tab">
+        <button class="tablinks active" onclick="DisplayTab(event, 'BSCT')">BSC Testnet</button>
+        <button class="tablinks" onclick="DisplayTab(event, 'Ropsten')">Ropsten</button>
+    </div>
+    <div id="BSCT" class="tabcontent">
+        <div class="centerBox textLeftAlign">
+            <h2>STEP 1</h2><hr>
+            <h3>Verify BSC Account</h3>
+            <p><strong>Address :</strong>  <label id="walletBSCT" for="html">NA</label></p>
+            <p><strong>Native Balance :</strong> <label id="balanceBSCT" for="html">0 BNB</label></p>
+            <p><strong>Token Balance :</strong> <label id="balanceTokenBSCT" for="html">0 BNB</label></p>
+        </div>
+        <br />
+        <div class="centerBox textLeftAlign">
+            <h2>STEP 2</h2><hr>
+            <h3>Get Token to Lock</h3>
+            <p><strong>Token Contract :</strong>  <label id="contractBSCT" for="html">NA</label></p>
+            <a id="connectButton" class="btn btn-warning displayText" onclick="MintBSCToken()">Mint Token</a>
+        </div>
+        <br />
+        <div class="centerBox textLeftAlign">
+            <h2>STEP 3</h2><hr>
+            <h3>Approve Hash Lock Contract</h3>
+            <p><strong>Hash Lock Contract :</strong>  <label id="contractHashLockBSCT" for="html">NA</label></p>
+            <a id="connectButton" class="btn btn-warning displayText" onclick="ApproveBSCToken()">Approve</a>
+        </div>
+        <br />
+        <div class="centerBox textLeftAlign">
+            <h2>STEP 4</h2><hr>
+            <h3>Create a new contract and copy the Contract Code</h3>
+            <p>Receiver <input type="text" id="addressReceiverBSCT" placeholder="Enter Receiver Address"></p>
+            <p>Amount <input type="number" id="amountReceiverBSCT"  placeholder="Enter Amount"></p>
+            <p>TimeLock <input type="number" id="timelockBSCT" placeholder="Enter Timelock Duration in Seconds"></p>
+            <p>Passcode <input type="password" id="passcodekBSCT" onkeyup="GenerateHashBSC()" placeholder="Enter passcode phrase"></p>
+            <p>Hashlock <input type="text" id="hashlockBSCT" readonly></p>
+            <a id="connectButton" class="btn btn-warning displayText" onclick="CreateLockBSC()">Create Contract</a>
+            <p>Contract Code <input type="text" id="contractCodeBSCT" readonly></p>
+        </div>
+        <br />
+        <div class="centerBox textLeftAlign">
+            <h2>STEP 5</h2><hr>
+            <h3>Verify Contract</h3>
+            <p>Contract Code <input type="text" id="verifyContractBSCT" placeholder="Enter Contract Code"></p>
+            <p>Sender <input type="text" id="verifyaddressSenderBSCT" readonly></p>
+            <p>Receiver <input type="text" id="verifyaddressReceiverBSCT" readonly></p>
+            <p>Amount <input type="text" id="verifyAmountBSCT" readonly></p>
+            <p>TimeLock <input type="number" id="verifytimelockBSCT" readonly></p>
+            <p>Withdrawn <input type="text" id="verifyWithdrawnBSCT" readonly></p>
+            <a id="verifyButton" class="btn btn-warning displayText" onclick="VerifyContractBSC()">View Contract</a>
+        </div>
+        <br />
+        <div class="centerBox textLeftAlign">
+            <h2>STEP 6</h2><hr>
+            <h3>Withdraw Token</h3>
+            <p>Contract Code <input type="text" id="withdrawContractBSCT" placeholder="Enter Contract Code"></p>
+            <p>Passcode <input type="password" id="withdrawpasscodekBSCT" placeholder="Enter passcode phrase"></p>
+            <a id="verifyButton" class="btn btn-warning displayText" onclick="WithdrawBSC()">Withdraw</a>
+        </div>
+        <br />
+        <div class="centerBox textLeftAlign">
+            <h2>REFUND</h2><hr>
+            <h3>You can refund your token after Timelock</h3>
+            <p>Contract Code <input type="text" id="refundContractBSCT" placeholder="Enter Contract Code"></p>
+            <a id="verifyButton" class="btn btn-warning displayText" onclick="RefundBSC()">Refund</a>
+        </div>
+    </div>
+
+    <div id="Ropsten" class="tabcontent">
+        <div class="centerBox textLeftAlign">
+            <h2>STEP 1</h2><hr>
+            <h3>Verify Ropsten Account</h3>
+            <p><strong>Address :</strong>  <label id="walletRopstenT" for="html">NA</label></p>
+            <p><strong>Native Balance :</strong> <label id="balanceRopstenT" for="html">0 BNB</label></p>
+            <p><strong>Token Balance :</strong> <label id="balanceTokenRopstenT" for="html">0 BNB</label></p>
+        </div>
+        <br />
+        <div class="centerBox textLeftAlign">
+            <h2>STEP 2</h2><hr>
+            <h3>Get Token to Lock</h3>
+            <p><strong>Token Contract :</strong>  <label id="contractRopstenT" for="html">NA</label></p>
+            <a id="connectButton" class="btn btn-warning displayText" onclick="MintRopstenToken()">Mint Token</a>
+        </div>
+        <br />
+        <div class="centerBox textLeftAlign">
+            <h2>STEP 3</h2><hr>
+            <h3>Approve Hash Lock Contract</h3>
+            <p><strong>Hash Lock Contract :</strong>  <label id="contractHashLockRopstenT" for="html">NA</label></p>
+            <a id="connectButton" class="btn btn-warning displayText" onclick="ApproveRopstenToken()">Approve</a>
+        </div>
+        <br />
+        <div class="centerBox textLeftAlign">
+            <h2>STEP 4</h2><hr>
+            <h3>Create a new contract and copy the Contract Code</h3>
+            <p>Receiver <input type="text" id="addressReceiverRopstenT" placeholder="Enter Receiver Address"></p>
+            <p>Amount <input type="number" id="amountReceiverRopstenT" placeholder="Enter Amount"></p>
+            <p>TimeLock <input type="number" id="timelockRopstenT" placeholder="Enter Timelock Duration in Seconds"></p>
+            <p>Passcode <input type="password" id="passcodekRopstenT" onkeyup="GenerateHashRopsten()" placeholder="Enter passcode phrase"></p>
+            <p>Hashlock <input type="text" id="hashlockRopstenT" readonly></p>
+            <a id="connectButton" class="btn btn-warning displayText" onclick="CreateLockRopsten()">Create Contract</a>
+            <p>Contract Code <input type="text" id="contractCodeRopstenT" readonly></p>
+        </div>
+        <br />
+        <div class="centerBox textLeftAlign">
+            <h2>STEP 5</h2><hr>
+            <h3>Verify Contract</h3>
+            <p>Contract Code <input type="text" id="verifyContractRopstenT" placeholder="Enter Contract Code"></p>
+            <p>Sender <input type="text" id="verifyaddressSenderRopstenT" readonly></p>
+            <p>Receiver <input type="text" id="verifyaddressReceiverRopstenT" readonly></p>
+            <p>Amount <input type="text" id="verifyAmountRopstenT" readonly></p>
+            <p>TimeLock <input type="number" id="verifytimelockRopstenT" readonly></p>
+            <p>Withdrawn <input type="text" id="verifyWithdrawnRopstenT" readonly></p>
+            <a id="verifyButton" class="btn btn-warning displayText" onclick="VerifyContractRopsten()">View Contract</a>
+        </div>
+        <br />
+        <div class="centerBox textLeftAlign">
+            <h2>STEP 6</h2><hr>
+            <h3>Withdraw Token</h3>
+            <p>Contract Code <input type="text" id="withdrawContractRopstenT" placeholder="Enter Contract Code"></p>
+            <p>Passcode <input type="password" id="withdrawpasscodekRopstenT" placeholder="Enter passcode phrase"></p>
+            <a id="verifyButton" class="btn btn-warning displayText" onclick="WithdrawRopsten()">Withdraw</a>
+        </div>
+        <br />
+        <div class="centerBox textLeftAlign">
+            <h2>REFUND</h2><hr>
+            <h3>You can refund your token after Timelock</h3>
+            <p>Contract Code <input type="text" id="refundContractRopstenT" placeholder="Enter Contract Code"></p>
+            <a id="verifyButton" class="btn btn-warning displayText" onclick="RefundRopsten()">Refund</a>
+        </div>
+    </div>
+
+</body>
+</html>
