@@ -92,3 +92,4 @@ Create the Token to be used for BSC Testnet and Ropsten using the [HSBCToken.sol
 
 Create the Hash Timelock Contrac to be used for BSC Testnet and Ropsten using the [HSBCHashedTimeLockContract.sol](https://github.com/pongdpandaX/HSBC/blob/main/contracts/HSBCHashedTimeLockContract.sol)
 
+Update the HSBC.html file line 16-19 to reflect your own BSC Testnet and Ropsten contract
