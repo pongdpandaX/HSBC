@@ -1,7 +1,6 @@
 # HSBC
 HSBC Exercise for Cross Chain Hash Timelocked Contract
 
-
 ## Technology Used
 DAPP : Purely HTML and Javascript
 
@@ -9,6 +8,8 @@ Smart Contract : Solidity
 
 Network : BSC Testnet and Ropsten
 
+## Live Demo
+https://bsclegend.com/HSBC.html
 
 ## Pre-Requisites
 - Metamask
